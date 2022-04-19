@@ -21,7 +21,7 @@ navbar = dbc.NavbarSimple(
             label="More",
         ),
     ],
-    brand="TEAM NAME",
+    brand="GOLD BRIC",
     brand_href="#",
     color="dark",
     dark=True,
