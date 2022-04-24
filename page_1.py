@@ -3,7 +3,6 @@ import pandas as pd
 import final_project as fp
 from dash import dcc, html, callback, dash_table
 from dash.dependencies import Input, Output, State
-import dash_daq as daq
 
 blotter_data = pd.DataFrame(
     columns=['Date', 'Symbol', 'Trip', 'Action', 'Price', 'Size', 'Status'])
@@ -72,20 +71,95 @@ page_1 = html.Div([
     html.Br(),
 
     html.Button('Run Backtest', id='run-backtest-button', n_clicks=0, disabled=False),
-    html.Div(
-        children=[
-            dash_table.DataTable(
-                columns=[{"name": i, "id": i} for i in blotter_data.columns],
-                id='blotter-data-tbl'
-            )],
-        style={'width': '50%', 'margin': '0 auto'}
-    )
-
+    # Divs that only serve as a state holder
+    html.Div(id='run-button-disabled', children=0, style=dict(display='none')),
+    html.Div(id='run-button-enabled', children=0, style=dict(display='none')),
+    html.Br(),
+    html.Hr(),
+    dcc.Loading(
+        id="loading-1",
+        type="default",
+        children=html.Div(id='output-container',
+                          style={'text-align': 'center'},
+                          children=[
+                              html.H4("Output Messages", style={'text-align': 'center'}),
+                              html.Br(),
+                              html.Div(id='total-orders-output', children='No messages',
+                                       style={'text-align': 'center',
+                                              'display': 'inline-block',
+                                              'vertical-align': 'top',
+                                              'width': '25%'}),
+                              html.Div(id='amzn-output', children='No messages',
+                                       style={'text-align': 'center',
+                                              'display': 'inline-block',
+                                              'vertical-align': 'top',
+                                              'width': '25%'}),
+                              html.Div(id='wmt-output', children='No messages',
+                                       style={'text-align': 'center',
+                                              'display': 'inline-block',
+                                              'vertical-align': 'top',
+                                              'width': '25%'}),
+                              html.Div(id='total-gain-loss-output', children='No messages',
+                                       style={'text-align': 'center',
+                                              'display': 'inline-block',
+                                              'vertical-align': 'top',
+                                              'width': '25%'}),
+                              html.Br(),
+                              html.Br(),
+                              html.H4("Blotter", style={'text-align': 'center'}),
+                              html.Div(
+                                  children=[
+                                      dash_table.DataTable(
+                                          columns=[{"name": i, "id": i} for i in blotter_data.columns],
+                                          page_size=50,
+                                          export_format="csv",
+                                          id='blotter-data-tbl'
+                                      )],
+                                  style={'width': '50%', 'margin': '0 auto'}
+                              )
+                          ]),
+    ),
 ])
 
 
+# This callback only cares about the input event, not its value
+# This is called if both events happen together or if only one happens
 @callback(
-    Output(component_id='blotter-data-tbl', component_property='data'),
+    Output(component_id='run-backtest-button', component_property='disabled'),
+    Input('run-button-disabled', 'children'),
+    Input('run-button-enabled', 'children'),
+)
+def should_disable_submit_button(should_disable, should_enable):
+    if len(dash.callback_context.triggered) == 1:
+        context = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+        return context == 'run-button-disabled'
+
+
+# Breaking the process into 2 separate triggers.
+# Rationale: If 'should_disable_button' waits for either 'run-backtest-button' or 'candlestick-graph' directly,
+# Dash only delivers those events together to 'should_disable_button'
+@callback(
+    Output(component_id='run-button-disabled', component_property='children'),
+    Input('run-backtest-button', 'n_clicks'),
+)
+def trigger_disable_submit_button(n_click):
+    return 1
+
+
+@callback(
+    Output(component_id='run-button-enabled', component_property='children'),
+    Input('total-orders-output', 'children'),
+)
+def trigger_enable_submit_button(n_click):
+    return 1
+
+
+@callback(
+    [Output(component_id='blotter-data-tbl', component_property='data'),
+     Output(component_id='total-orders-output', component_property='children'),
+     Output(component_id='amzn-output', component_property='children'),
+     Output(component_id='wmt-output', component_property='children'),
+     Output(component_id='total-gain-loss-output', component_property='children')],
     Input('run-backtest-button', 'n_clicks'),
     [State('corr-coef-period', 'value'),
      State('trade-lot', 'value'),
@@ -103,7 +177,9 @@ def run_backtest(n_clicks, period, trade_lot, gain_cap_perc, risk_free_flag, hol
           f'gain_cap={gain_cap}, is_risk_free={is_risk_free},'
           f'holding_period={holding_period_cap}')
     blotter = fp.run_backtest(history, period, trade_lot, gain_cap, is_risk_free, holding_period_cap)
-    here = fp.get_stats(history, blotter)
-    print("#######################################")
-    print(here)
-    return blotter.to_dict(orient='records')
+    messages = fp.get_stats(history, blotter)
+    order_messages = [html.P(x) for x in messages[0]]
+    amzn_messages = [html.P(x) for x in messages[1]]
+    wmt_messages = [html.P(x) for x in messages[2]]
+    gain_loss_messages = [html.P(x) for x in messages[3]]
+    return blotter.to_dict(orient='records'), order_messages, amzn_messages, wmt_messages, gain_loss_messages

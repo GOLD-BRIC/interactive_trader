@@ -207,36 +207,33 @@ def calculate_gain_loss(symbol, blotter, messages):
     messages.append(f'Total Sales: ${round(total_sales, 2):,}')
     messages.append(f'Total Purchases: ${round(total_purchases, 2):,}')
     messages.append(f'Gain or Loss: ${round(gain_loss, 2):,}')
-    print(f"\n******  {symbol}  ******")
-    print(f'Total Sales: ${round(total_sales, 2):,}')
-    print(f'Total Purchases: ${round(total_purchases, 2):,}')
-    print(f'Gain or Loss: ${round(gain_loss, 2):,}')
     return gain_loss
 
 
 def get_stats(hist, blotter):
-    messages = []
-    messages.append(f"Entry Orders: {blotter[(blotter['Trip'] == 'ENTRY') & (blotter['Status'] == 'FILLED')].shape[0]}")
-    messages.append(f"Filled Exit Orders: {blotter[(blotter['Trip'] == 'EXIT') & (blotter['Status'] == 'FILLED')].shape[0]}")
-    messages.append(f"Forced Exit Orders: {blotter[(blotter['Trip'] == 'EXIT') & (blotter['Status'] == 'FORCED')].shape[0]}")
-
-    print(
-        f"Entry Orders: {blotter[(blotter['Trip'] == 'ENTRY') & (blotter['Status'] == 'FILLED')].shape[0]}")
-    print(
+    order_messages = []
+    order_messages.append(f"******  Orders  ******")
+    order_messages.append(f"Entry Orders: {blotter[(blotter['Trip'] == 'ENTRY') & (blotter['Status'] == 'FILLED')].shape[0]}")
+    order_messages.append(
         f"Filled Exit Orders: {blotter[(blotter['Trip'] == 'EXIT') & (blotter['Status'] == 'FILLED')].shape[0]}")
-    print(
+    order_messages.append(
+        f"Canceled Exit Orders: {blotter[(blotter['Trip'] == 'EXIT') & (blotter['Status'] == 'CANCELED')].shape[0]}")
+    order_messages.append(
         f"Forced Exit Orders: {blotter[(blotter['Trip'] == 'EXIT') & (blotter['Status'] == 'FORCED')].shape[0]}")
-    amz_gain_loss = calculate_gain_loss('AMZN', blotter, messages)
-    wmt_gain_loss = calculate_gain_loss('WMT', blotter, messages)
+
+    amzn_messages = []
+    amz_gain_loss = calculate_gain_loss('AMZN', blotter, amzn_messages)
+    wmt_messages = []
+    wmt_gain_loss = calculate_gain_loss('WMT', blotter, wmt_messages)
     total_gain_loss = amz_gain_loss + wmt_gain_loss
     time_period = hist.last_valid_index() - hist.first_valid_index()
     years = round(time_period.days / 365.2425, 2)
     total_gain_loss_per_year = total_gain_loss / years
 
-    messages.append(f"\nYears: {years}")
-    messages.append(f'Total Gain or Loss: ${round(total_gain_loss, 2):,}')
-    messages.append(f"Total Gain or Loss Per Year: ${round(total_gain_loss_per_year, 2):,}")
-    print(f"\nYears: {years}")
-    print(f'Total Gain or Loss: ${round(total_gain_loss, 2):,}')
-    print(f"Total Gain or Loss Per Year: ${round(total_gain_loss_per_year, 2):,}")
-    return messages
+    gain_loss_messages = []
+    gain_loss_messages.append(f"******  Total Gain/Loss  ******")
+    gain_loss_messages.append(f"\nYears: {years}")
+    gain_loss_messages.append(f'Total Gain or Loss: ${round(total_gain_loss, 2):,}')
+    gain_loss_messages.append(f"Total Gain or Loss Per Year: ${round(total_gain_loss_per_year, 2):,}")
+    print()
+    return [order_messages, amzn_messages, wmt_messages, gain_loss_messages]
