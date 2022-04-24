@@ -13,9 +13,8 @@ HOLDING_PERIOD_CAP = 5  # business days
 # HISTORICAL MARKET DATA
 def load_data(period=PERIOD):
     file_path = os.getenv("ITA_DATA_PATH")
-    risk_free_path = os.getenv("RISK_FREE_DATA_PATH")
     hist = pd.read_csv(f'{file_path}\data.csv', parse_dates=True, index_col='Date')
-    risk_free_hist = pd.read_csv(f"{risk_free_path}\\risk_free.csv", parse_dates=True, index_col='Date')
+    risk_free_hist = pd.read_csv(f"{file_path}\\risk_free.csv", parse_dates=True, index_col='Date')
 
     risk_free_hist['interest_rate'] = risk_free_hist['interest_rate'] / 100
     hist = hist.iloc[::-1]
