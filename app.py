@@ -1,6 +1,6 @@
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import dcc, html, callback
 from dash.dependencies import Input, Output, State
 from page_1 import page_1
 from order_page import order_page
@@ -39,7 +39,7 @@ connected = ""
 
 ibkr_async_conn = ibkr_app()
 
-app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 server = app.server
 
 app.layout = html.Div(
@@ -50,14 +50,15 @@ app.layout = html.Div(
         sidebar,
         html.Div(id="page-content", style=CONTENT_STYLE),
         dcc.Interval(
-            id = 'ibkr-update-interval',
+            id='ibkr-update-interval',
             interval=5000,
             n_intervals=0
         )
     ],
 )
 
-@app.callback(
+
+@callback(
     [Output('trade-blotter', 'data'), Output('trade-blotter', 'columns')],
     Input('ibkr-update-interval', 'n_intervals')
 )
@@ -72,7 +73,8 @@ def update_order_status(n_intervals):
     dt_columns = [{"name": i, "id": i} for i in df.columns]
     return dt_data, dt_columns
 
-@app.callback(
+
+@callback(
     [Output('errors-dt', 'data'), Output('errors-dt', 'columns')],
     Input('ibkr-update-interval', 'n_intervals')
 )
@@ -87,7 +89,8 @@ def update_order_status(n_intervals):
     dt_columns = [{"name": i, "id": i} for i in df.columns]
     return dt_data, dt_columns
 
-@app.callback(
+
+@callback(
     [
         Output("sidebar", "style"),
         Output("page-content", "style"),
@@ -116,9 +119,10 @@ def toggle_sidebar(n, nclick):
 
     return sidebar_style, content_style, cur_nclick
 
+
 # this callback uses the current pathname to set the active state of the
 # corresponding nav link to true, allowing users to tell see page they are on
-@app.callback(
+@callback(
     [Output(f"page-{i}-link", "active") for i in range(1, 4)],
     [Input("url", "pathname")],
 )
@@ -129,7 +133,7 @@ def toggle_active_links(pathname):
     return [pathname == f"/page-{i}" for i in range(1, 4)]
 
 
-@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+@callback(Output("page-content", "children"), [Input("url", "pathname")])
 def render_page_content(pathname):
     if pathname in ["/", "/home-screen"]:
         return page_1
@@ -146,7 +150,8 @@ def render_page_content(pathname):
         ]
     )
 
-@app.callback(
+
+@callback(
     Output('ibkr-async-conn-status', 'children'),
     [
         Input('ibkr-async-conn-status', 'children'),
@@ -156,7 +161,6 @@ def render_page_content(pathname):
     ]
 )
 def async_handler(async_status, master_client_id, port, hostname):
-
     if async_status == "CONNECTED":
         raise PreventUpdate
         pass
@@ -197,7 +201,8 @@ def async_handler(async_status, master_client_id, port, hostname):
 
     return str(connected)
 
-@app.callback(
+
+@callback(
     Output('placeholder-div', 'children'),
     [
         Input('trade-button', 'n_clicks'),
@@ -212,13 +217,12 @@ def async_handler(async_status, master_client_id, port, hostname):
         Input('order-lmt-price', 'value'),
         Input('order-account', 'value')
     ],
-    prevent_initial_call = True
+    prevent_initial_call=True
 )
 def place_order(n_clicks, contract_symbol, contract_sec_type,
                 contract_currency, contract_exchange,
                 contract_primary_exchange, order_action, order_type,
                 order_size, order_lmt_price, order_account):
-
     # Contract object: STOCK
     contract = Contract()
     contract.symbol = contract_symbol
@@ -251,4 +255,4 @@ def place_order(n_clicks, contract_symbol, contract_sec_type,
     return ''
 
 if __name__ == "__main__":
-    app.run_server()
+    app.run_server(debug=True)
