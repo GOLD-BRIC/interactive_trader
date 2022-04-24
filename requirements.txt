@@ -3,5 +3,3 @@ dash
 ibapi
 dash-bootstrap-components
 waitress
-jupyter
-yfinance
